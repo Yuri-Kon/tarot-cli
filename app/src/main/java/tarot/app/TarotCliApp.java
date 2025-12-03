@@ -11,11 +11,13 @@ import tarot.draw.strategy.StandardDrawStrategy;
 import tarot.repository.CardRepository;
 import tarot.repository.JsonCardRepository;
 import tarot.service.TarotDrawService;
+import tarot.spread.FourCardPattern;
+import tarot.spread.PatternBasedSpread;
 import tarot.spread.RelationshipFourCardSpread;
 import tarot.spread.SingleCardSpread;
 import tarot.spread.Spread;
-import tarot.spread.ThreeCardSpread;
-import tarot.spread.ThreePlusOneAdviceSpread;
+import tarot.spread.SpreadPattern;
+import tarot.spread.ThreeCardPattern;
 
 /**
  * 简单命令行交互的塔罗牌程序
@@ -58,10 +60,22 @@ public class TarotCliApp {
                         spread = new SingleCardSpread();
                         break;
                     case "2":
-                        spread = new ThreeCardSpread();
+                        // 三张牌，进入二级菜单选择解读方式
+                        spread = chooseThreeCardSpread(scanner);
+                        if (spread == null) {
+                            // 用户在二级菜单选择返回
+                            System.out.println();
+                            continue;
+                        }
                         break;
                     case "3":
-                        spread = new ThreePlusOneAdviceSpread();
+                        // 四张牌，进入二级菜单选择解读方式
+                        spread = chooseFourCardSpread(scanner);
+                        if (spread == null) {
+                            // 用户在二级菜单返回
+                            System.out.println();
+                            continue;
+                        }
                         break;
                     case "4":
                         spread = new RelationshipFourCardSpread();
@@ -109,12 +123,84 @@ public class TarotCliApp {
     private static void printMenu() {
         System.out.println("请选择牌阵类型：");
         System.out.println(" 1. 单张牌：主题指引");
-        System.out.println(" 2. 三张牌：过去 / 现在 / 未来");
-        System.out.println(" 3. 三加一：过去 / 现在 / 未来 + 建议");
+        System.out.println(" 2. 三张牌(选择解读方式)");
+        System.out.println(" 3. 四张牌(选择解读方式)");
         System.out.println(" 4. 四张牌：你 / 对方 / 关系走向 / 建议");
         System.out.println(" 0. 退出程序");
         System.out.println();
     }
+
+
+    /**
+     * 通用的「从一组模板中选择牌阵」逻辑。
+     * 只要模板实现了 SpreadPattern，即可使用本方法；
+     * 因此可以支持任意 N 张牌的解读模板。
+     *
+     * @param scanner        输入流
+     * @param patterns       模板数组（如 ThreeCardPattern.values()）
+     * @param cardCountLabel 展示用的张数说明，例如「三张牌」「四张牌」
+     * @return 根据选择创建出的牌阵，返回 null 表示返回上级菜单
+     */
+    private static Spread choosePatternSpread(
+            Scanner scanner,
+            SpreadPattern[] patterns,
+            String cardCountLabel
+    ) {
+        System.out.println();
+        System.out.println("请选择" + cardCountLabel + "的解读方式：");
+
+        for (int i = 0; i < patterns.length; i++) {
+            System.out.printf(" %d. %s%n", i + 1, patterns[i].getDisplayName());
+        }
+
+        System.out.println(" 0. 返回上级菜单");
+        System.out.println("请输入编号，默认1：");
+
+        if (!scanner.hasNextLine()) {
+            System.out.println("检测到输入结束，返回上一级菜单");
+            return null;
+        }
+
+        String input = scanner.nextLine().trim();
+
+        if (input.equals("0")) {
+            return null;
+        }
+
+        int index = 0;
+        if (!input.isEmpty()) {
+            try {
+                int choice = Integer.parseInt(input);
+                if (choice >= 1 && choice <= patterns.length) {
+                    index = choice - 1;
+                } else {
+                    System.out.println("输入超出范围，默认选择第一个");
+                }
+            } catch (NumberFormatException e) {
+                System.out.println("输入不是数字，默认选择第一个");
+            }
+        }
+
+        SpreadPattern pattern = patterns[index];
+        System.out.println("你选择了" + cardCountLabel + "解读方式：" + pattern.getDisplayName());
+        // 使用通用的 PatternBasedSpread，而不是写死三张 / 四张牌
+        return new PatternBasedSpread(cardCountLabel, pattern);
+    }
+
+    /**
+     * 选择三张牌的解读模板（基于通用逻辑封装）
+     */
+    private static Spread chooseThreeCardSpread(Scanner scanner) {
+        return choosePatternSpread(scanner, ThreeCardPattern.values(), "三张牌");
+    }
+
+    /**
+     * 选择四张牌的解读模板（基于通用逻辑封装）
+     */
+    private static Spread chooseFourCardSpread(Scanner scanner) {
+        return choosePatternSpread(scanner, FourCardPattern.values(), "四张牌");
+    }
+
 
     private static boolean askReversedEnabled(Scanner scanner) {
         System.out.println("是否启用逆位? (y/n 默认y): ");
