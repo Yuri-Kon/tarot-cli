@@ -30,3 +30,6 @@ Thumbs.db
 
 # JVM 崩溃日志
 hs_err_pid*
+
+# codex生成文件
+AGENTS.md

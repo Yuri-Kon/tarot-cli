@@ -4,8 +4,10 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * 三张牌的标准解读模板集合
- * 这里是位置含义的配置
+ * 三张牌的标准解读模板集合。
+ * <p>
+ * 每个枚举常量描述了一种常见的三张牌结构（如「过去 / 现在 / 未来」），
+ * 由展示名称和固定的 {@link CardPosition} 列表组成。
  */
 public enum ThreeCardPattern implements SpreadPattern {
 
@@ -48,14 +50,18 @@ public enum ThreeCardPattern implements SpreadPattern {
     }
 
     /**
-     * 给用户展示用的名称
-     * @return
+     * 给用户展示用的名称，例如「过去 / 现在 / 未来」。
+     *
+     * @return 非空、可读性良好的模板名称
      */
     @Override
     public String getDisplayName() {
         return displayName;
     }
 
+    /**
+     * 返回当前模板下的三个位置信息，顺序即为抽牌顺序。
+     */
     @Override
     public List<CardPosition> getPositions() {
         return positions;

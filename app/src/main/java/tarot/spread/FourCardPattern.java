@@ -3,6 +3,14 @@ package tarot.spread;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * 四张牌模板集合。
+ * <p>
+ * 每个枚举常量代表一个常见的四张牌解读结构，通过 {@link #getDisplayName()} 和
+ * 对应的 {@link CardPosition} 列表来表达具体含义。
+ * <p>
+ * 这些模板通常与 {@link PatternBasedSpread} 搭配，在 CLI 中让用户选择。
+ */
 public enum FourCardPattern implements SpreadPattern {
     @SuppressWarnings("null")
     YOU_OTHER_RELATIONSHIP_ADVICE(
@@ -78,11 +86,17 @@ public enum FourCardPattern implements SpreadPattern {
         this.positions = positions;
     }
 
+    /**
+     * 返回模板的展示名称，例如「你 / 对方 / 关系 / 建议」。
+     */
     @Override
     public String getDisplayName() {
         return displayName;
     }
 
+    /**
+     * 返回固定的四个位置定义，顺序即为抽牌与解读顺序。
+     */
     @Override
     public List<CardPosition> getPositions() {
         return positions;

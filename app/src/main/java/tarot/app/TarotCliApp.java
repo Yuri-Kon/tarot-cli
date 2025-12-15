@@ -3,6 +3,7 @@ package tarot.app;
 import java.nio.charset.StandardCharsets;
 import java.util.Random;
 import java.util.Scanner;
+import java.util.List;
 
 import tarot.deck.factory.DeckFactory;
 import tarot.deck.factory.StandardTarotDeckFactory;
@@ -18,6 +19,8 @@ import tarot.spread.SingleCardSpread;
 import tarot.spread.Spread;
 import tarot.spread.SpreadPattern;
 import tarot.spread.ThreeCardPattern;
+import tarot.spread.SpreadRecommender;
+import tarot.spread.SpreadRecommender.SpreadSuggestion;
 
 /**
  * 简单命令行交互的塔罗牌程序
@@ -45,49 +48,23 @@ public class TarotCliApp {
             boolean running = true;
 
             while (running) {
-                printMenu();
-
-                System.out.println("请输入选项编号：");
-                if (!scanner.hasNextLine()) {
-                    System.out.println("未检测到输入，程序结束。");
+                String question = promptUserQuestion(scanner);
+                if (question == null) {
                     break;
                 }
-                String choice = scanner.nextLine().trim();
 
-                Spread spread;
-                switch (choice) {
-                    case "1":
-                        spread = new SingleCardSpread();
-                        break;
-                    case "2":
-                        // 三张牌，进入二级菜单选择解读方式
-                        spread = chooseThreeCardSpread(scanner);
-                        if (spread == null) {
-                            // 用户在二级菜单选择返回
-                            System.out.println();
-                            continue;
-                        }
-                        break;
-                    case "3":
-                        // 四张牌，进入二级菜单选择解读方式
-                        spread = chooseFourCardSpread(scanner);
-                        if (spread == null) {
-                            // 用户在二级菜单返回
-                            System.out.println();
-                            continue;
-                        }
-                        break;
-                    case "4":
-                        spread = new RelationshipFourCardSpread();
-                        break;
-                    case "0":
-                        running = false;
-                        System.out.println("已退出程序，再见");
-                        continue;
-                    default:
-                        System.out.println("无效选项，请重新输入。");
-                        System.out.println();
-                        continue;
+                SpreadSelection selection = chooseSpreadWithRecommendations(scanner, question);
+                if (selection.exitRequested()) {
+                    running = false;
+                    System.out.println("已退出程序，再见");
+                    continue;
+                }
+
+                Spread spread = selection.spread();
+                if (spread == null) {
+                    System.out.println("未能确定牌阵，请重新选择。");
+                    System.out.println();
+                    continue;
                 }
 
                 // 询问是否启用逆位
@@ -201,6 +178,94 @@ public class TarotCliApp {
         return choosePatternSpread(scanner, FourCardPattern.values(), "四张牌");
     }
 
+    private static SpreadSelection chooseSpreadWithRecommendations(Scanner scanner, String question) {
+        List<SpreadSuggestion> suggestions = SpreadRecommender.recommend(question);
+        if (!suggestions.isEmpty()) {
+            Spread spread = chooseFromSuggestions(scanner, suggestions);
+            if (spread != null) {
+                return new SpreadSelection(spread, false);
+            }
+        }
+        return chooseSpreadFromMenu(scanner);
+    }
+
+    private static SpreadSelection chooseSpreadFromMenu(Scanner scanner) {
+        while (true) {
+            printMenu();
+
+            System.out.println("请输入选项编号：");
+            if (!scanner.hasNextLine()) {
+                System.out.println("未检测到输入，程序结束。");
+                return new SpreadSelection(null, true);
+            }
+            String choice = scanner.nextLine().trim();
+
+            Spread spread;
+            switch (choice) {
+                case "1":
+                    spread = new SingleCardSpread();
+                    break;
+                case "2":
+                    spread = chooseThreeCardSpread(scanner);
+                    if (spread == null) {
+                        System.out.println();
+                        continue;
+                    }
+                    break;
+                case "3":
+                    spread = chooseFourCardSpread(scanner);
+                    if (spread == null) {
+                        System.out.println();
+                        continue;
+                    }
+                    break;
+                case "4":
+                    spread = new RelationshipFourCardSpread();
+                    break;
+                case "0":
+                    return new SpreadSelection(null, true);
+                default:
+                    System.out.println("无效选项，请重新输入。");
+                    System.out.println();
+                    continue;
+            }
+            return new SpreadSelection(spread, false);
+        }
+    }
+
+    private static Spread chooseFromSuggestions(Scanner scanner, List<SpreadSuggestion> suggestions) {
+        System.out.println("根据你的问题，推荐以下牌阵：");
+        for (int i = 0; i < suggestions.size(); i++) {
+            SpreadSuggestion suggestion = suggestions.get(i);
+            System.out.printf(" %d. %s —— %s%n", i + 1, suggestion.spread().getName(), suggestion.reason());
+        }
+        System.out.println(" 0. 都不合适，我想自己选择");
+        System.out.println("请输入编号，默认1：");
+
+        if (!scanner.hasNextLine()) {
+            System.out.println("未检测到输入，默认选择第一个推荐。");
+            return suggestions.get(0).spread();
+        }
+        String input = scanner.nextLine().trim();
+        if (input.isEmpty()) {
+            return suggestions.get(0).spread();
+        }
+        if (input.equals("0")) {
+            System.out.println("好的，你可以自行选择牌阵。");
+            System.out.println();
+            return null;
+        }
+        try {
+            int index = Integer.parseInt(input);
+            if (index >= 1 && index <= suggestions.size()) {
+                return suggestions.get(index - 1).spread();
+            }
+        } catch (NumberFormatException ignored) {
+            // ignore and fall back to default
+        }
+        System.out.println("输入无效，默认使用第一个推荐。");
+        return suggestions.get(0).spread();
+    }
 
     private static boolean askReversedEnabled(Scanner scanner) {
         System.out.println("是否启用逆位? (y/n 默认y): ");
@@ -219,5 +284,26 @@ public class TarotCliApp {
             return false;
         }
         return true;
+    }
+
+    private static String promptUserQuestion(Scanner scanner) {
+        System.out.println("在选择牌阵前，请简要描述你想问的问题（例如「近期工作机会如何？」、「我和TA的关系走向？」）。");
+        System.out.println("请输入你的问题，直接回车则使用常规流程：");
+
+        if (!scanner.hasNextLine()) {
+            System.out.println("未检测到输入，程序结束。");
+            return null;
+        }
+
+        String question = scanner.nextLine().trim();
+        if (question.isEmpty()) {
+            System.out.println("好的，将按常规流程选择牌阵。");
+        } else {
+            System.out.println("收到，你的问题是：「" + question + "」。");
+        }
+        System.out.println();
+        return question;
+    }
+    private record SpreadSelection(Spread spread, boolean exitRequested) {
     }
 }
