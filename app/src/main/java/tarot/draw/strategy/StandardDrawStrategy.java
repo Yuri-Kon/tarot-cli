@@ -14,26 +14,26 @@ import tarot.domain.TarotCard;
  * 2. 依次从牌堆顶抽取count张牌
  * 3. 每张牌根据enableReversed决定是否可能为逆位
  */
-public class StandardDrawStrategy implements DrawStrategy{
-   
-    @Override
-    public List<DrawnCard> draw(Deck deck, int count, boolean enableReversed, Random random) {
-        if (deck.size() < count) {
-            throw new IllegalArgumentException("牌堆剩余牌不足，无法抽取 " + count + " 张牌"); 
-        }
+public class StandardDrawStrategy implements DrawStrategy {
 
-        /**
-         * 洗牌
-         */
-        deck.shuffle(random);
+  @Override
+  public List<DrawnCard> draw(Deck deck, int count, boolean enableReversed, Random random) {
+    if (deck.size() < count) {
+      throw new IllegalArgumentException("牌堆剩余牌不足，无法抽取 " + count + " 张牌");
+    }
 
-        List<DrawnCard> result = new ArrayList<>();
-        for (int i = 0; i < count; i++) {
-            TarotCard card = deck.drawTop();
-            boolean reversed = enableReversed && random.nextBoolean();
-            result.add(new DrawnCard(card, reversed));
-        }
+    /**
+     * 洗牌
+     */
+    deck.shuffle(random);
 
-        return result;
-    } 
+    List<DrawnCard> result = new ArrayList<>();
+    for (int i = 0; i < count; i++) {
+      TarotCard card = deck.drawTop();
+      boolean reversed = enableReversed && random.nextBoolean();
+      result.add(new DrawnCard(card, reversed));
+    }
+
+    return result;
+  }
 }

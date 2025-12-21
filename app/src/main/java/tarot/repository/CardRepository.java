@@ -9,10 +9,11 @@ import tarot.domain.TarotCard;
  */
 public interface CardRepository {
 
-    /**
-     * 返回一副标准塔罗牌所包含的所有牌定义
-     * 当前版本只可以返回部分牌用于测试
-     * @return
-     */
-   List<TarotCard> findAll(); 
+  /**
+   * 返回一副标准塔罗牌所包含的所有牌定义
+   * 当前版本只可以返回部分牌用于测试
+   * 
+   * @return
+   */
+  List<TarotCard> findAll();
 }
