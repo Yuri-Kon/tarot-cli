@@ -231,11 +231,20 @@ public final class SpreadRecommender {
     return true;
   }
 
+  /**
+   * 轻量级文本向量：基于分词计数与向量模长，支持余弦相似度计算。
+   * 用于离线语义近似匹配，不依赖外部模型。
+   */
   private static final class TokenVector {
 
     private final Map<String, Integer> counts;
     private final double magnitude;
 
+    /**
+     * 以词频计数构造向量，并预计算模长。
+     *
+     * @param counts 词项到频次的映射
+     */
     private TokenVector(Map<String, Integer> counts) {
       this.counts = counts;
       this.magnitude = Math.sqrt(counts.values().stream()
@@ -243,10 +252,21 @@ public final class SpreadRecommender {
           .sum());
     }
 
+    /**
+     * 判断向量是否为空（无任何词项）。
+     *
+     * @return true 表示没有词项
+     */
     private boolean isEmpty() {
       return counts.isEmpty();
     }
 
+    /**
+     * 计算与另一个向量的余弦相似度。
+     *
+     * @param other 另一个向量
+     * @return 相似度得分，范围 [0, 1]
+     */
     private double cosineSimilarity(TokenVector other) {
       if (magnitude == 0 || other.magnitude == 0) {
         return 0;
@@ -263,6 +283,12 @@ public final class SpreadRecommender {
       return dot / (magnitude * other.magnitude);
     }
 
+    /**
+     * 从文本中分词并构建词频向量。
+     *
+     * @param text 输入文本
+     * @return 由文本生成的向量
+     */
     private static TokenVector fromText(String text) {
       if (text == null || text.isBlank()) {
         return new TokenVector(Collections.emptyMap());
